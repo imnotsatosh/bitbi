@@ -14,6 +14,10 @@ typedef int64_t CAmount;
 /** The amount of satoshis in one BTC. */
 static constexpr CAmount COIN = 100000000;
 
+static constexpr CAmount INITIAL_REWARD = 70.70 * COIN;
+
+static constexpr CAmount PREMINED_FUND = 900000 * COIN;// pemined reward
+
 /** No amount larger than this (in satoshi) is valid.
  *
  * Note that this constant is *not* the total money supply, which in Bitcoin

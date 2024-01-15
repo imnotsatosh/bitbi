@@ -7,6 +7,8 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 #include <consensus/validation.h>
+#include <node/miner.h>
+#include <util/strencodings.h>
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {
@@ -47,6 +49,20 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-length");
+        if (tx.vout.size() < 2) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-out");
+        }
+
+        std::vector<unsigned char> devdata = ParseHex(DevRewardReceiverAddr);
+        CScript devScriptPubKey(devdata.begin(), devdata.end());
+
+        std::vector<unsigned char>  fdata = ParseHex(FundReceiverAddr);
+        CScript fundScriptPubKey(fdata.begin(), fdata.end());
+
+        if (tx.vout[1].scriptPubKey != devScriptPubKey 
+            && tx.vout[1].scriptPubKey != fundScriptPubKey) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-payout");
+        }
     }
     else
     {

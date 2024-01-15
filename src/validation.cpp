@@ -1642,7 +1642,7 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     if (halvings >= 64)
         return 0;
 
-    CAmount nSubsidy = 50 * COIN;
+    CAmount nSubsidy = INITIAL_REWARD;
     // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
     nSubsidy >>= halvings;
     return nSubsidy;
@@ -2426,7 +2426,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              Ticks<MillisecondsDouble>(time_connect) / num_blocks_total);
 
     CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
-    if (block.vtx[0]->GetValueOut() > blockReward) {
+    if (pindex->nHeight != 1 && block.vtx[0]->GetValueOut() > blockReward) {
         LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", block.vtx[0]->GetValueOut(), blockReward);
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
     }
@@ -3612,15 +3612,49 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
     }
 }
 
+
+void bin2hex(char *s, const unsigned char *p, size_t len)
+{
+	int i;
+	for (i = 0; i < len; i++)
+		sprintf(s + (i * 2), "%02x", (unsigned int)p[i]);
+}
+
+std::string doubleSHA256(const unsigned char* data, unsigned int dataLen) {
+    CSHA256 sha;
+    uint256 hash;
+    sha.Write((unsigned char*)data, dataLen);
+    sha.Finalize(hash.begin());
+    sha.Reset().Write(hash.begin(), CSHA256::OUTPUT_SIZE).Finalize(hash.begin());
+    return hash.GetHex();
+}
+
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
+    uint256 minedHash = (CHashWriter{PROTOCOL_VERSION} << block).GetHash();
+
+    //double check for sure
+    unsigned char input[80] = {0};
+    WriteLE32(&input[0], block.nVersion);
+    memcpy(&input[4], block.hashPrevBlock.begin(), 32);
+    memcpy(&input[36], block.hashMerkleRoot.begin(), 32);
+    WriteLE32(&input[68], block.nTime);
+    WriteLE32(&input[72], block.nBits);
+    WriteLE32(&input[76], block.nNonce);
+
+    std::string hash2 = doubleSHA256(input, 80);
+
+    char input_hex[161] = {0};
+	bin2hex(input_hex, (unsigned char *)input, 80);
+    LogPrintf("CheckBlockHeader minedHash=%s, hash2=%s, input=%s\n", minedHash.ToString().c_str(), hash2, input_hex);
     // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams))
+    if (fCheckPOW && !CheckProofOfWork(minedHash, block.nBits, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     return true;
 }
-
+// 200000003e3ab0a872297035fead477b7d1332b2ce75eb9df4c90cffa49fd3f20033de7b8bc1f1ac24e9f854644a39732a4d51e19bcda9d03fefd14a3ca5d495851b9999c896a465ffff7f1f84020000
+// 200000003e3ab0a872297035fead477b7d1332b2ce75eb9df4c90cffa49fd3f20033de7b8bc1f1ac24e9f854644a39732a4d51e19bcda9d03fefd14a3ca5d495851b9999c896a465ffff7f1f84020000
 bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.

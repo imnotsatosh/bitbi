@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <util/strencodings.h>
 
 namespace node {
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
@@ -152,9 +153,32 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
-    coinbaseTx.vout.resize(1);
+    coinbaseTx.vout.resize(2);
+
+
+    CAmount totalReward = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    CAmount minerReward = totalReward * 100 / 101;
+    CAmount devReward = totalReward - minerReward;
+    //Miner reward
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    coinbaseTx.vout[0].nValue = minerReward;
+
+    if (nHeight != 1) {
+        //Developer reward
+        std::vector<unsigned char> data = ParseHex(DevRewardReceiverAddr);
+        CScript pubKey(data.begin(), data.end());
+        coinbaseTx.vout[1].scriptPubKey = pubKey; // Developer's address
+        coinbaseTx.vout[1].nValue = devReward; 
+        coinbaseTx.vout[0].nValue = minerReward;
+    } else {
+        //fund premine
+        std::vector<unsigned char> data = ParseHex(FundReceiverAddr);
+        CScript pubKey(data.begin(), data.end());
+        coinbaseTx.vout[1].scriptPubKey = pubKey; // fund's address
+        coinbaseTx.vout[1].nValue = PREMINED_FUND;
+        coinbaseTx.vout[0].nValue = nFees + INITIAL_REWARD;
+    }
+    
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
