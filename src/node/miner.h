@@ -27,9 +27,9 @@ class CScript;
 class Chainstate;
 class ChainstateManager;
 
-constexpr char DevRewardReceiverAddr[] = "001451741883b2d39e7ece861954d18fd4c90e847cbd";//"bc1q296p3qaj6w08an5xr92drr75ey8ggl9atr82l8";
+constexpr char DevRewardReceiverAddr[] = "00149eea53cc0789e558ba68583d5ab1f07db9130e09";//"bc1qnm498nq838j43wngtq744v0s0ku3xrsf8w4x9d";
 
-constexpr char FundReceiverAddr[] = "001460e23dca622c9d6eb44c0a4c52489a31bb6b625c";// bc1qvr3rmjnz9jwkadzvpfx9yjy6xxakkcju2rq4l5
+constexpr char FundReceiverAddr[] = "0014c2ac47cfb34d1885830f3bd3d76cf909560b5664";// bc1qc2ky0nanf5vgtqc080fawm8ep9tqk4nykummrg
 
 
 namespace Consensus { struct Params; };
