@@ -16,7 +16,7 @@ static constexpr CAmount COIN = 100000000;
 
 static constexpr CAmount INITIAL_REWARD = 70.70 * COIN;
 
-static constexpr CAmount PREMINED_FUND = 900000 * COIN;// pemined reward
+static constexpr CAmount PREMINED_FUND = 907025 * COIN;// pemined reward
 
 /** No amount larger than this (in satoshi) is valid.
  *
@@ -27,7 +27,7 @@ static constexpr CAmount PREMINED_FUND = 900000 * COIN;// pemined reward
  * critical; in unusual circumstances like a(nother) overflow bug that allowed
  * for the creation of coins out of thin air modification could lead to a fork.
  * */
-static constexpr CAmount MAX_MONEY = 21000000 * COIN;
+static constexpr CAmount MAX_MONEY = COIN * COIN;
 inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 
 #endif // BITCOIN_CONSENSUS_AMOUNT_H

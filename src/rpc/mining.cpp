@@ -120,10 +120,17 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock& block, uint64_t& 
     block_out.reset();
     block.hashMerkleRoot = BlockMerkleRoot(block);
 
-    while (max_tries > 0 && block.nNonce < std::numeric_limits<uint32_t>::max() && !CheckProofOfWork(block.GetHash(), block.nBits, chainman.GetConsensus()) && !ShutdownRequested()) {
-        ++block.nNonce;
-        --max_tries;
+    RxWorkMiner miner{block.GetBlockHeader()};
+    uint256 powHash;
+    bool succ = miner.Mine(&powHash, &block.nNonce, ShutdownRequested);
+    if (succ) {
+        LogPrintf("RxWorkMiner found a block with hash: %s nNonce: %d\n", powHash.ToString(), block.nNonce);
     }
+
+    // while (max_tries > 0 && block.nNonce < std::numeric_limits<uint32_t>::max() && !CheckProofOfWork(block.GetHash(), block.nBits, chainman.GetConsensus()) && !ShutdownRequested()) {
+    //     ++block.nNonce;
+    //     --max_tries;
+    // }
     if (max_tries == 0 || ShutdownRequested()) {
         return false;
     }
@@ -704,9 +711,9 @@ static RPCHelpMan getblocktemplate()
 
     if (!chainman.GetParams().IsTestChain()) {
         const CConnman& connman = EnsureConnman(node);
-        // if (connman.GetNodeCount(ConnectionDirection::Both) == 0) {
-        //     throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, PACKAGE_NAME " is not connected!");
-        // }
+        if (connman.GetNodeCount(ConnectionDirection::Both) == 0) {
+            throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, PACKAGE_NAME " is not connected!");
+        }
 
         if (chainman.IsInitialBlockDownload()) {
             throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, PACKAGE_NAME " is in initial sync and waiting for blocks...");

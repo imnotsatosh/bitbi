@@ -3613,14 +3613,14 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
 }
 
 
-void bin2hex(char *s, const unsigned char *p, size_t len)
+void bin2hex_temp(char *s, const unsigned char *p, size_t len)
 {
 	int i;
 	for (i = 0; i < len; i++)
 		sprintf(s + (i * 2), "%02x", (unsigned int)p[i]);
 }
 
-std::string doubleSHA256(const unsigned char* data, unsigned int dataLen) {
+std::string doubleSHA256_temp(const unsigned char* data, unsigned int dataLen) {
     CSHA256 sha;
     uint256 hash;
     sha.Write((unsigned char*)data, dataLen);
@@ -3629,7 +3629,8 @@ std::string doubleSHA256(const unsigned char* data, unsigned int dataLen) {
     return hash.GetHex();
 }
 
-static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
+
+static bool CheckBlockHeader_temp(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
     uint256 minedHash = (CHashWriter{PROTOCOL_VERSION} << block).GetHash();
 
@@ -3642,13 +3643,22 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
     WriteLE32(&input[72], block.nBits);
     WriteLE32(&input[76], block.nNonce);
 
-    std::string hash2 = doubleSHA256(input, 80);
+    std::string hash2 = doubleSHA256_temp(input, 80);
 
     char input_hex[161] = {0};
-	bin2hex(input_hex, (unsigned char *)input, 80);
+	bin2hex_temp(input_hex, (unsigned char *)input, 80);
     LogPrintf("CheckBlockHeader minedHash=%s, hash2=%s, input=%s\n", minedHash.ToString().c_str(), hash2, input_hex);
     // Check proof of work matches claimed amount
     if (fCheckPOW && !CheckProofOfWork(minedHash, block.nBits, consensusParams))
+        return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
+
+    return true;
+}
+
+static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
+{
+    // Check proof of work matches claimed amount
+    if (fCheckPOW && !CheckProofOfWorkX(block, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     return true;
@@ -3771,7 +3781,7 @@ std::vector<unsigned char> ChainstateManager::GenerateCoinbaseCommitment(CBlock&
 bool HasValidProofOfWork(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams)
 {
     return std::all_of(headers.cbegin(), headers.cend(),
-            [&](const auto& header) { return CheckProofOfWork(header.GetHash(), header.nBits, consensusParams);});
+            [&](const auto& header) { return CheckProofOfWorkX(header, consensusParams);});
 }
 
 arith_uint256 CalculateHeadersWork(const std::vector<CBlockHeader>& headers)

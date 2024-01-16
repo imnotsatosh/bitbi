@@ -9,6 +9,13 @@
 #include <consensus/params.h>
 
 #include <stdint.h>
+#include "sync.h"
+#include "crypto/sha256.h"
+#include <randomx.h>
+#include "arith_uint256.h"
+#include <primitives/block.h>
+#include "logging.h"
+
 
 class CBlockHeader;
 class CBlockIndex;
@@ -33,5 +40,130 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
  * such as regtest/testnet.
  */
 bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t height, uint32_t old_nbits, uint32_t new_nbits);
+
+
+void JustCheck();
+
+bool CheckProofOfWorkX(const CBlockHeader& block, const Consensus::Params& params);
+
+static inline uint256 HashBytesToUnit256(unsigned char *hashBytes) {
+    uint256 hVal;
+    memcpy(hVal.begin(), hashBytes, 32);
+    return hVal;
+}
+
+class RxWorkMiner
+{
+private:
+    randomx_vm *mVm;
+    randomx_dataset *mDataset;
+    const CBlockHeader  mBlockHeader;
+    Mutex mMutex;
+
+    inline bool checkPow(arith_uint256 hash, arith_uint256 bnTarget) const {
+    // Check proof of work matches claimed amount
+       return hash <= bnTarget;
+    }
+    RxWorkMiner(uint256 key, const CBlockHeader block) : mBlockHeader(block)
+    {
+        randomx_flags flags = RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_ARGON2_SSSE3 | RANDOMX_FLAG_ARGON2_AVX2;
+        randomx_cache * cache = randomx_alloc_cache(flags);
+        if (cache == nullptr)
+        {
+            LogPrintf("RxWorkMiner Cache allocation failed\n");
+            return;
+        }
+        const int WIDTH = 32;
+        
+        randomx_init_cache(cache, key.data(), WIDTH);
+
+
+        mDataset = randomx_alloc_dataset(flags);
+        if (mDataset == nullptr)
+        {
+            LogPrintf("RxWorkMiner Dataset allocation failed\n");
+            return ;
+        }
+
+        auto datasetItemCount = randomx_dataset_item_count();
+        std::thread t1(&randomx_init_dataset, mDataset, cache, 0, datasetItemCount / 2);
+        std::thread t2(&randomx_init_dataset, mDataset, cache, datasetItemCount / 2, datasetItemCount - datasetItemCount / 2);
+        t1.join();
+        t2.join();
+        randomx_release_cache(cache);
+
+        mVm = randomx_create_vm(flags, nullptr, mDataset);
+        if (mVm == nullptr)
+        {
+            LogPrintf("RxWorkMiner Failed to create a virtual machine\n");
+            return;
+        }
+    }
+
+    static uint256 sha256dKeyBlock(const CBlockHeader& block) {
+        unsigned char d1[80] = {0};
+        WriteLE32(&d1[0], block.nVersion);
+        memcpy(&d1[4], block.hashPrevBlock.begin(), 32);
+        memcpy(&d1[36], block.hashMerkleRoot.begin(), 32);
+        WriteLE32(&d1[68], block.nTime);
+        WriteLE32(&d1[72], block.nBits);
+
+        CSHA256 sha;
+        uint256 d1Rst;
+        sha.Write(d1, sizeof(d1));
+        sha.Finalize(d1Rst.begin());
+        sha.Reset().Write(d1Rst.begin(), CSHA256::OUTPUT_SIZE).Finalize(d1Rst.begin());
+
+        return d1Rst;
+    }
+public:
+    
+    RxWorkMiner(const CBlockHeader& block):  RxWorkMiner(sha256dKeyBlock(block), block){
+    }
+
+    ~RxWorkMiner()
+    {
+        randomx_destroy_vm(mVm);
+	    randomx_release_dataset(mDataset);
+    }
+
+    bool Mine(uint256* pHash, uint32_t* pNonce, bool (*ShutdownRequested)())
+    {
+        LOCK(mMutex);
+        const CBlockHeader& block = mBlockHeader;
+        const int WIDTH = 32;
+        uint32_t nonce = block.nNonce;
+        unsigned char d1[80] = {0};
+        WriteLE32(&d1[0], block.nVersion);
+        memcpy(&d1[4], block.hashPrevBlock.begin(), 32);
+        memcpy(&d1[36], block.hashMerkleRoot.begin(), 32);
+        WriteLE32(&d1[68], block.nTime);
+        WriteLE32(&d1[72], block.nBits);
+        
+        uint32_t nBits = block.nBits;
+        arith_uint256 bnTarget;
+        bnTarget.SetCompact(nBits, nullptr, nullptr);
+
+        uint256 hash;
+        uint8_t result[WIDTH];
+        CSHA256 sha;
+        uint256 input;
+        arith_uint256 arith256;
+        do {
+            if (ShutdownRequested && ShutdownRequested()) {
+                LogPrintf("RxWorkMiner shutdown requested, aborting\n");
+                return false;
+            }
+            WriteLE32(&d1[76], nonce++);
+            
+            randomx_calculate_hash(mVm, d1, 80, result);
+            hash = HashBytesToUnit256(result);
+            arith256 = UintToArith256(hash);
+        } while( arith256 > bnTarget);
+        *pHash = hash;
+        *pNonce = nonce - 1;
+        return true;
+    }
+};
 
 #endif // BITCOIN_POW_H
