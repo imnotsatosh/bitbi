@@ -86,10 +86,25 @@ private:
         }
 
         auto datasetItemCount = randomx_dataset_item_count();
-        std::thread t1(&randomx_init_dataset, mDataset, cache, 0, datasetItemCount / 2);
-        std::thread t2(&randomx_init_dataset, mDataset, cache, datasetItemCount / 2, datasetItemCount - datasetItemCount / 2);
-        t1.join();
-        t2.join();
+        std::vector<std::thread> threads;
+        const int nThreads = 8;
+        if (nThreads > 1) {
+            auto perThread = datasetItemCount / nThreads;
+            auto remainder = datasetItemCount % nThreads;
+            uint32_t startItem = 0;
+            for (int i = 0; i < nThreads; ++i) {
+                auto count = perThread + (i == nThreads - 1 ? remainder : 0);
+                threads.push_back(std::thread(&randomx_init_dataset, mDataset, cache, startItem, count));
+                startItem += count;
+            }
+            for (unsigned i = 0; i < threads.size(); ++i) {
+                threads[i].join();
+            }
+        }
+        else {
+            randomx_init_dataset(mDataset, cache, 0, datasetItemCount);
+        }
+
         randomx_release_cache(cache);
 
         mVm = randomx_create_vm(flags, nullptr, mDataset);

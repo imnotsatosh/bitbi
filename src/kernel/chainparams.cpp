@@ -170,7 +170,7 @@ public:
         m_assumed_blockchain_size = 590;
         m_assumed_chain_state_size = 9;
 
-        genesis = CreateGenesisBlock(1705402601, 170533, 0x1f00ffff, 4, INITIAL_REWARD, consensus);
+        genesis = CreateGenesisBlock(1705471200, 0, 0x1f00ee00, 4, INITIAL_REWARD, consensus);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("main CreateGenesisBlock : hash %s\n", consensus.hashGenesisBlock.GetHex());
         LogPrintf("main CreateGenesisBlock : merkle %s\n", genesis.hashMerkleRoot.GetHex());
