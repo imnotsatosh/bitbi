@@ -66,7 +66,7 @@ private:
     }
     RxWorkMiner(uint256 key, const CBlockHeader block) : mBlockHeader(block)
     {
-        randomx_flags flags = RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_ARGON2_SSSE3 | RANDOMX_FLAG_ARGON2_AVX2;
+        randomx_flags flags = RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT ;
         randomx_cache * cache = randomx_alloc_cache(flags);
         if (cache == nullptr)
         {
