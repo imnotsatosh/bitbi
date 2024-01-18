@@ -1635,16 +1635,23 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
     return result;
 }
 
+static const int SubsidyAtLeast = 10100;
+static const int DropCountToLeastSubsidy = 208;
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
-    // Force block reward to zero when right shift is undefined.
-    if (halvings >= 64)
-        return 0;
+    int drops = nHeight / consensusParams.nSubsidyHalvingInterval;
+    // We make the subsidy at least 10100, and when drop 208 times the subsidy will be below 10100 satoshi.
+    if (drops >= DropCountToLeastSubsidy)
+        return SubsidyAtLeast;
 
     CAmount nSubsidy = INITIAL_REWARD;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
+    // Subsidy drop 1/16 every 87600 blocks which will occur approximately every year.
+    // make sure nSubsidy is great than `SubsidyAtLeast` at the end, so the dev addr will receive at least 1 wen
+    while(drops > 0)
+    {
+        nSubsidy -= nSubsidy/16;
+        --drops;
+    }
     return nSubsidy;
 }
 
