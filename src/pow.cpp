@@ -11,6 +11,7 @@
 #include <uint256.h>
 #include "hash.h"
 
+
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
     assert(pindexLast != nullptr);
@@ -152,7 +153,13 @@ private:
 public:
     RxWorkVerifier()
     {
-        randomx_flags flags = RANDOMX_FLAG_JIT | RANDOMX_FLAG_ARGON2_SSSE3 | RANDOMX_FLAG_ARGON2_AVX2;
+        randomx_flags flags =  RANDOMX_FLAG_JIT ;
+        if (isAVX2Supported()) {
+            flags |= RANDOMX_FLAG_ARGON2_AVX2;
+        }
+        if (isSSSE3Supported()) {
+            flags |= RANDOMX_FLAG_ARGON2_SSSE3;
+        }
         mCache = randomx_alloc_cache(flags);
         if (mCache == nullptr)
         {
