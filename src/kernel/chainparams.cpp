@@ -187,6 +187,7 @@ public:
         vSeeds.emplace_back("dnsseed1.youme.xin."); // Matt Corallo, only supports x9
         vSeeds.emplace_back("dnsseed2.youme.xin.");
         vSeeds.emplace_back("dnsseed3.youme.xin.");
+        vSeeds.emplace_back("dnsseed4.youme.xin.");
         // vSeeds.emplace_back("dnsseed.bitcoin.dashjr.org."); // Luke Dashjr
         // vSeeds.emplace_back("seed.bitcoinstats.com."); // Christian Decker, supports x1 - xf
         // vSeeds.emplace_back("seed.bitcoin.jonasschnelli.ch."); // Jonas Schnelli, only supports x1, x5, x9, and xd
