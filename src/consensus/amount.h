@@ -12,12 +12,13 @@
 typedef int64_t CAmount;
 
 /** The amount of satoshis in one BTC. */
-static constexpr CAmount COIN = 100000000;
+static constexpr CAmount COIN = 1000000000;
 
-static constexpr CAmount INITIAL_REWARD = 70.70 * COIN;
+static constexpr CAmount INITIAL_REWARD = 303 * COIN;
 
-static constexpr CAmount PREMINED_FUND = 907025 * COIN;// pemined reward
+static constexpr CAmount PREMINED_FUND = 40000000 * COIN;// pemined reward less than 4% of total supply, total supply is less than 1 billion
 
+static constexpr int32_t DROP_DIVISOR = 30;
 /** No amount larger than this (in satoshi) is valid.
  *
  * Note that this constant is *not* the total money supply, which in Bitcoin

@@ -123,7 +123,7 @@ public:
         m_chain_type = ChainType::MAIN;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 87600;
+        consensus.nSubsidyHalvingInterval = 105120;
         consensus.script_flag_exceptions.emplace( // BIP16 exception
             uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), SCRIPT_VERIFY_NONE);
         consensus.script_flag_exceptions.emplace( // Taproot exception
@@ -137,11 +137,11 @@ public:
         consensus.MinBIP9WarningHeight = 0; // segwit activation height + miner confirmation window
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan =  7 * 24 * 60 * 60; // one weeks
-        consensus.nPowTargetSpacing = 6 * 60; // 6 minutes per block
+        consensus.nPowTargetSpacing = 5 * 60; // 6 minutes per block
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1512; // 90% of 2016
-        consensus.nMinerConfirmationWindow = 1680; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.nRuleChangeActivationThreshold = 1814; // 90% of 2016
+        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -165,12 +165,12 @@ public:
         pchMessageStart[1] = 0xad;
         pchMessageStart[2] = 0xbd;
         pchMessageStart[3] = 0xcd;
-        nDefaultPort = 7025;
+        nDefaultPort = 3033;
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 590;
         m_assumed_chain_state_size = 9;
 
-        genesis = CreateGenesisBlock(1705492800, 65174, 0x1f009900, 4, INITIAL_REWARD, consensus);
+        genesis = CreateGenesisBlock(1705993200, 0, 0x1f009900, 4, INITIAL_REWARD, consensus);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("main CreateGenesisBlock : hash %s\n", consensus.hashGenesisBlock.GetHex());
         LogPrintf("main CreateGenesisBlock : merkle %s\n", genesis.hashMerkleRoot.GetHex());
@@ -237,7 +237,7 @@ public:
         m_chain_type = ChainType::TESTNET;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 87600;
+        consensus.nSubsidyHalvingInterval = 105120;
         consensus.script_flag_exceptions.emplace( // BIP16 exception
             uint256S("0x00000000dd30457c001f4095d208cc1296b0eed002427aa599874af7a432b105"), SCRIPT_VERIFY_NONE);
         consensus.BIP34Height = 21111;
@@ -381,7 +381,7 @@ public:
         m_chain_type = ChainType::SIGNET;
         consensus.signet_blocks = true;
         consensus.signet_challenge.assign(bin.begin(), bin.end());
-        consensus.nSubsidyHalvingInterval = 87600;
+        consensus.nSubsidyHalvingInterval = 105120;
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 1;

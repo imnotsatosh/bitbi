@@ -1635,8 +1635,8 @@ PackageMempoolAcceptResult ProcessNewPackage(Chainstate& active_chainstate, CTxM
     return result;
 }
 
-static const int SubsidyAtLeast = 10100;
-static const int DropCountToLeastSubsidy = 208;
+static const int SubsidyAtLeast = 303000;
+static const int DropCountToLeastSubsidy = 408;
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     int drops = nHeight / consensusParams.nSubsidyHalvingInterval;
@@ -1645,11 +1645,11 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
         return SubsidyAtLeast;
 
     CAmount nSubsidy = INITIAL_REWARD;
-    // Subsidy drop 1/16 every 87600 blocks which will occur approximately every year.
+    // Subsidy drop 1/DROP_DIVISOR every 105120 blocks which will occur approximately every year.
     // make sure nSubsidy is great than `SubsidyAtLeast` at the end, so the dev addr will receive at least 1 wen
     while(drops > 0)
     {
-        nSubsidy -= nSubsidy/16;
+        nSubsidy -= nSubsidy/DROP_DIVISOR;
         --drops;
     }
     return nSubsidy;
