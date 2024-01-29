@@ -29,6 +29,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <future> 
 
 namespace kernel {
 static constexpr uint8_t DB_BLOCK_FILES{'f'};
@@ -93,9 +94,18 @@ bool BlockTreeDB::ReadFlag(const std::string& name, bool& fValue)
     return true;
 }
 
+
+bool CheckHeaderPow(CBlockIndex* pindex, const Consensus::Params& params) {
+    if (!CheckProofOfWorkX(pindex->GetBlockHeader(), params)) {
+        return error("%s: CheckProofOfWorkX failed: %s", __func__, pindex->ToString());
+    }
+    return true;
+}
+
 bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex, const util::SignalInterrupt& interrupt)
 {
     AssertLockHeld(::cs_main);
+    std::vector<std::future<bool>> futures; // Move the declaration outside of the code block
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
     pcursor->Seek(std::make_pair(DB_BLOCK_INDEX, uint256()));
 
@@ -120,9 +130,11 @@ bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, s
                 pindexNew->nNonce         = diskindex.nNonce;
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
-                if (!CheckProofOfWorkX(pindexNew->GetBlockHeader(), consensusParams)) {
-                    return error("%s: CheckProofOfWorkX failed: %s", __func__, pindexNew->ToString());
-                }
+                // if (!CheckProofOfWorkX(pindexNew->GetBlockHeader(), consensusParams)) {
+                //     return error("%s: CheckProofOfWorkX failed: %s", __func__, pindexNew->ToString());
+                // }
+
+                futures.push_back(std::async(std::launch::async, CheckHeaderPow, pindexNew, consensusParams));
 
                 pcursor->Next();
             } else {
@@ -132,7 +144,13 @@ bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, s
             break;
         }
     }
-
+    // Collect results
+    for (auto& fut : futures) {
+        if (!fut.get()) {
+            return error("%s: CheckProofOfWorkX failed", __func__);
+        }
+        if (interrupt) return false;
+    }
     return true;
 }
 } // namespace kernel

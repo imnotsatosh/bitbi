@@ -10,6 +10,7 @@
 #include <primitives/block.h>
 #include <uint256.h>
 #include "hash.h"
+#include "util/syncqueue.h"
 
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
@@ -190,6 +191,59 @@ public:
     }
 };
 
+class RxWorkVerifier2
+{
+private:
+    SyncQueue<randomx_cache*> mCacheQueue;
+public:
+    RxWorkVerifier2()
+    {
+        randomx_flags flags =  RANDOMX_FLAG_JIT ;
+        if (isAVX2Supported()) {
+            flags |= RANDOMX_FLAG_ARGON2_AVX2;
+        }
+        if (isSSSE3Supported()) {
+            flags |= RANDOMX_FLAG_ARGON2_SSSE3;
+        }
+        //pre-allocate 2*ncores caches
+        const int nCaches = 2*std::thread::hardware_concurrency();
+        LogPrintf("RxWorkVerifier2 pre-allocate %d caches\n", nCaches);
+        for (int i = 0; i < nCaches; ++i) {
+            randomx_cache* cache = randomx_alloc_cache(flags);
+            if (cache == nullptr)
+            {
+                LogPrintf("RxWorkVerifier Cache allocation failed\n");
+                return;
+            }
+            mCacheQueue.push(cache);
+        }
+    }
+    ~RxWorkVerifier2()
+    {
+        for (int i = 0; i < mCacheQueue.size(); ++i) {
+            randomx_cache* cache = mCacheQueue.pop();
+            randomx_release_cache(cache);
+        }
+    }
+
+    uint256 PowHash(uint256 key,  unsigned char* input, size_t inputSize)
+    {
+        const int WIDTH = 32;
+        randomx_cache *cache = mCacheQueue.pop();
+        randomx_init_cache(cache, key.data(), WIDTH);
+
+        randomx_vm *vm = randomx_create_vm(randomx_get_flags(), cache, nullptr);
+
+        uint8_t result[WIDTH];
+        randomx_calculate_hash(vm, input, inputSize, result);
+
+        randomx_destroy_vm(vm);
+        mCacheQueue.push(cache);
+
+        return HashBytesToUnit256(result);
+    }
+};
+
 
 void bin2hex(char *s, const unsigned char *p, size_t len)
 {
@@ -199,7 +253,7 @@ void bin2hex(char *s, const unsigned char *p, size_t len)
 }
 
 
-static RxWorkVerifier g_RxWorkVerifier{};
+static RxWorkVerifier2 g_RxWorkVerifier{};
 bool CheckProofOfWorkX(const CBlockHeader& block, const Consensus::Params& params) {
     // serialize header without the nonce field
     CHashWriter keyss(PROTOCOL_VERSION);
