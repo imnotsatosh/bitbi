@@ -137,7 +137,7 @@ public:
         consensus.MinBIP9WarningHeight = 0; // segwit activation height + miner confirmation window
         consensus.powLimit = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan =  7 * 24 * 60 * 60; // one weeks
-        consensus.nPowTargetSpacing = 5 * 60; // 6 minutes per block
+        consensus.nPowTargetSpacing = 5 * 60; // 5 minutes per block
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1814; // 90% of 2016
