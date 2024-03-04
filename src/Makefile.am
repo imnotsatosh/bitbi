@@ -668,6 +668,7 @@ libbitcoin_common_a_SOURCES = \
   addresstype.cpp \
   base58.cpp \
   bech32.cpp \
+  chain.cpp \
   chainparams.cpp \
   coins.cpp \
   common/args.cpp \
@@ -697,6 +698,7 @@ libbitcoin_common_a_SOURCES = \
   policy/policy.cpp \
   protocol.cpp \
   psbt.cpp \
+  pow.cpp \
   rpc/external_signer.cpp \
   rpc/rawtransaction_util.cpp \
   rpc/request.cpp \
@@ -808,7 +810,7 @@ bitcoin_node_SOURCES = $(bitcoin_daemon_sources) init/bitcoin-node.cpp
 bitcoin_node_CPPFLAGS = $(bitcoin_bin_cppflags)
 bitcoin_node_CXXFLAGS = $(bitcoin_bin_cxxflags)
 bitcoin_node_LDFLAGS = $(bitcoin_bin_ldflags)
-bitcoin_node_LDADD = $(LIBBITCOIN_NODE) $(bitcoin_bin_ldadd) $(LIBBITCOIN_IPC) $(LIBMULTIPROCESS_LIBS)
+bitcoin_node_LDADD = $(LIBBITCOIN_NODE) $(bitcoin_bin_ldadd) $(LIBBITCOIN_IPC) $(LIBMULTIPROCESS_LIBS) $(LIBBITCOIN_RANDOMX)
 
 # bitcoin-cli binary #
 bitcoin_cli_SOURCES = bitcoin-cli.cpp
@@ -848,7 +850,8 @@ bitcoin_tx_LDADD = \
   $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1) \
-  $(LIBBITCOIN_RANDOMX)
+  $(LIBBITCOIN_RANDOMX) \
+  $(LIBBITCOINKERNEL)
 #
 
 # bitcoin-wallet binary #

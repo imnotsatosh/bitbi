@@ -81,17 +81,17 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     //     LogPrintf("CreateGenesisBlock : nonce %u hash: %s\n", nonce, genesis.GetHash().GetHex());
     // }
     LogPrintf("CreateGenesisBlock : nonce %u hash: %s check result: %d \n", nNonce, genesis.GetHash().GetHex(), CheckProofOfWorkX(genesis, consensus));
-    if(!CheckProofOfWorkX(genesis, consensus)) {
-        RxWorkMiner miner{genesis.GetBlockHeader()};
-        uint256 powHash;
-        uint32_t nonce = 0;
-        bool succ = miner.Mine(&powHash, &nonce, 0);
-        if (succ) {
-            genesis.nNonce = nonce;//663343
-            LogPrintf("CreateGenesisBlock : nonce %u hash: %s\n", nonce, genesis.GetHash().GetHex());
-        }
-        assert(CheckProofOfWorkX(genesis, consensus));
-    }
+    // if(!CheckProofOfWorkX(genesis, consensus)) {
+    //     RxWorkMiner miner{genesis.GetBlockHeader()};
+    //     uint256 powHash;
+    //     uint32_t nonce = 0;
+    //     bool succ = miner.Mine(&powHash, &nonce, 0);
+    //     if (succ) {
+    //         genesis.nNonce = nonce;//663343
+    //         LogPrintf("CreateGenesisBlock : nonce %u hash: %s\n", nonce, genesis.GetHash().GetHex());
+    //     }
+    //     assert(CheckProofOfWorkX(genesis, consensus));
+    // }
     return genesis;
 }
 

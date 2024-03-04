@@ -133,7 +133,6 @@ bool BlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, s
                 // if (!CheckProofOfWorkX(pindexNew->GetBlockHeader(), consensusParams)) {
                 //     return error("%s: CheckProofOfWorkX failed: %s", __func__, pindexNew->ToString());
                 // }
-
                 futures.push_back(std::async(std::launch::async, CheckHeaderPow, pindexNew, consensusParams));
 
                 pcursor->Next();
