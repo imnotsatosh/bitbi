@@ -143,22 +143,7 @@ private:
         }
     }
 
-    static uint256 sha256dKeyBlock(const CBlockHeader& block) {
-        unsigned char d1[80] = {0};
-        WriteLE32(&d1[0], block.nVersion);
-        memcpy(&d1[4], block.hashPrevBlock.begin(), 32);
-        memcpy(&d1[36], block.hashMerkleRoot.begin(), 32);
-        WriteLE32(&d1[68], block.nTime);
-        WriteLE32(&d1[72], block.nBits);
-
-        CSHA256 sha;
-        uint256 d1Rst;
-        sha.Write(d1, sizeof(d1));
-        sha.Finalize(d1Rst.begin());
-        sha.Reset().Write(d1Rst.begin(), CSHA256::OUTPUT_SIZE).Finalize(d1Rst.begin());
-
-        return d1Rst;
-    }
+    static uint256 sha256dKeyBlock(const CBlockHeader& block);
 public:
     
     RxWorkMiner(const CBlockHeader& block):  RxWorkMiner(sha256dKeyBlock(block), block){

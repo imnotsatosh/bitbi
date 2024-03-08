@@ -10,7 +10,7 @@
 #include <primitives/block.h>
 #include <uint256.h>
 #include "hash.h"
-#include "util/syncqueue.h"
+#include "util/syncstack.h"
 
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
@@ -64,10 +64,10 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
     arith_uint256 bnNew;
     bnNew.SetCompact(pindexLast->nBits);
-    bnNew *= nActualTimespan;
-    bnNew /= params.nPowTargetTimespan;
-    // bnNew *= (nActualTimespan*1024/params.nPowTargetTimespan);
-    // bnNew /= 1024;
+    // bnNew *= nActualTimespan;
+    // bnNew /= params.nPowTargetTimespan;
+    bnNew *= (nActualTimespan*2048/params.nPowTargetTimespan);
+    bnNew /= 2048;
     if (bnNew > bnPowLimit)
         bnNew = bnPowLimit;
 
@@ -194,7 +194,7 @@ public:
 class RxWorkVerifier2
 {
 private:
-    SyncQueue<randomx_cache*> mCacheQueue;
+    SyncStack<randomx_cache*> mCacheStack;
 public:
     RxWorkVerifier2()
     {
@@ -215,13 +215,13 @@ public:
                 LogPrintf("RxWorkVerifier Cache allocation failed\n");
                 return;
             }
-            mCacheQueue.push(cache);
+            mCacheStack.push(cache);
         }
     }
     ~RxWorkVerifier2()
     {
-        for (int i = 0; i < mCacheQueue.size(); ++i) {
-            randomx_cache* cache = mCacheQueue.pop();
+        for (int i = 0; i < mCacheStack.size(); ++i) {
+            randomx_cache* cache = mCacheStack.pop();
             randomx_release_cache(cache);
         }
     }
@@ -229,7 +229,7 @@ public:
     uint256 PowHash(uint256 key,  unsigned char* input, size_t inputSize)
     {
         const int WIDTH = 32;
-        randomx_cache *cache = mCacheQueue.pop();
+        randomx_cache *cache = mCacheStack.pop();
         randomx_init_cache(cache, key.data(), WIDTH);
 
         randomx_vm *vm = randomx_create_vm(randomx_get_flags(), cache, nullptr);
@@ -238,11 +238,89 @@ public:
         randomx_calculate_hash(vm, input, inputSize, result);
 
         randomx_destroy_vm(vm);
-        mCacheQueue.push(cache);
+        mCacheStack.push(cache);
 
         return HashBytesToUnit256(result);
     }
 };
+
+static inline const int WIDTH = 32;
+
+class VerifierCtx {
+public:
+    uint256 m_key;
+    randomx_vm *m_vm;
+    randomx_cache *m_cache;
+    VerifierCtx(uint256 key) {
+        reinitialize(key);
+    }
+    void reinitialize(uint256 key) {
+        if (key != m_key) {
+            if (m_vm) {
+                randomx_destroy_vm(m_vm);
+            }
+            if (m_cache) {
+                randomx_release_cache(m_cache);
+            }
+            randomx_flags flags =  RANDOMX_FLAG_JIT ;
+            if (isAVX2Supported()) {
+                flags |= RANDOMX_FLAG_ARGON2_AVX2;
+            }
+            if (isSSSE3Supported()) {
+                flags |= RANDOMX_FLAG_ARGON2_SSSE3;
+            }
+            m_cache = randomx_alloc_cache(flags);
+            const int WIDTH = 32;
+            randomx_init_cache(m_cache, key.data(), WIDTH);
+            m_vm = randomx_create_vm(flags, m_cache, nullptr);
+            m_key = key;
+        }
+    }
+
+    ~VerifierCtx() {
+        randomx_destroy_vm(m_vm);
+        randomx_release_cache(m_cache);
+    }
+};
+
+
+class RxWorkVerifier3
+{
+private:
+    SyncStack<VerifierCtx*> mCacheStack;
+    int m_nCaches;
+public:
+    RxWorkVerifier3()
+    {
+        //pre-allocate 2*ncores caches
+        m_nCaches = 1*std::thread::hardware_concurrency();
+        for (int i = 0; i < m_nCaches; ++i) {
+            VerifierCtx* cache = new VerifierCtx(uint256());
+            mCacheStack.push(cache);
+        }
+    }
+    ~RxWorkVerifier3()
+    {
+        for (int i = 0; i < mCacheStack.size(); ++i) {
+            VerifierCtx* cache = mCacheStack.pop();
+            delete cache;
+        }
+    }
+
+    uint256 PowHash(uint256 key,  unsigned char* input, size_t inputSize)
+    {
+        VerifierCtx *cache = mCacheStack.pop();
+        cache->reinitialize(key);
+
+        uint8_t result[WIDTH];
+        randomx_calculate_hash(cache->m_vm, input, inputSize, result);
+
+        mCacheStack.push(cache);
+
+        return HashBytesToUnit256(result);
+    }
+};
+
 
 
 void bin2hex(char *s, const unsigned char *p, size_t len)
@@ -252,12 +330,12 @@ void bin2hex(char *s, const unsigned char *p, size_t len)
 		sprintf(s + (i * 2), "%02x", (unsigned int)p[i]);
 }
 
-
-static RxWorkVerifier2 g_RxWorkVerifier{};
+static RxWorkVerifier3 g_RxWorkVerifier{};
 bool CheckProofOfWorkX(const CBlockHeader& block, const Consensus::Params& params) {
     // serialize header without the nonce field
     CHashWriter keyss(PROTOCOL_VERSION);
-    keyss << block.nVersion << block.hashPrevBlock << block.hashMerkleRoot << block.nTime << block.nBits << uint32_t(0);
+    //change the key approximately every 345678 seconds(~4days)
+    keyss << block.nVersion << block.nTime/345678 << block.nBits << uint32_t(0);
     uint256 key256 = keyss.GetHash();
 
     //double check for sure
@@ -519,4 +597,13 @@ void JustCheck() {
     //2344b7a9b50f3cc2761a40722c05361f73119f4d5d6cc129da369e0db8d462bc
     //bc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423
     //bc62d4b80d9e36da29c16c5d4d9f11731f36052c72401a76c23c0fb5a9b74423
+}
+
+uint256 RxWorkMiner::sha256dKeyBlock(const CBlockHeader& block) {
+    // serialize header without the nonce field
+    CHashWriter keyss(PROTOCOL_VERSION);
+    //change the key approximately every 345678 seconds(~4days)
+    keyss << block.nVersion << block.nTime/345678 << block.nBits << uint32_t(0);
+    uint256 key256 = keyss.GetHash();
+    return key256;
 }

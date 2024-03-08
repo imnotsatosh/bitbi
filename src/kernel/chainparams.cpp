@@ -81,17 +81,17 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     //     LogPrintf("CreateGenesisBlock : nonce %u hash: %s\n", nonce, genesis.GetHash().GetHex());
     // }
     LogPrintf("CreateGenesisBlock : nonce %u hash: %s check result: %d \n", nNonce, genesis.GetHash().GetHex(), CheckProofOfWorkX(genesis, consensus));
-    // if(!CheckProofOfWorkX(genesis, consensus)) {
-    //     RxWorkMiner miner{genesis.GetBlockHeader()};
-    //     uint256 powHash;
-    //     uint32_t nonce = 0;
-    //     bool succ = miner.Mine(&powHash, &nonce, 0);
-    //     if (succ) {
-    //         genesis.nNonce = nonce;//663343
-    //         LogPrintf("CreateGenesisBlock : nonce %u hash: %s\n", nonce, genesis.GetHash().GetHex());
-    //     }
-    //     assert(CheckProofOfWorkX(genesis, consensus));
-    // }
+    if(!CheckProofOfWorkX(genesis, consensus)) {
+        RxWorkMiner miner{genesis.GetBlockHeader()};
+        uint256 powHash;
+        uint32_t nonce = 0;
+        bool succ = miner.Mine(&powHash, &nonce, 0);
+        if (succ) {
+            genesis.nNonce = nonce;//663343
+            LogPrintf("CreateGenesisBlock : nonce %u hash: %s\n", nonce, genesis.GetHash().GetHex());
+        }
+        assert(CheckProofOfWorkX(genesis, consensus));
+    }
     return genesis;
 }
 
@@ -165,12 +165,12 @@ public:
         pchMessageStart[1] = 0xad;
         pchMessageStart[2] = 0xbd;
         pchMessageStart[3] = 0xcd;
-        nDefaultPort = 3033;
+        nDefaultPort = 9801;
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 590;
         m_assumed_chain_state_size = 9;
 
-        genesis = CreateGenesisBlock(1705993200, 222016, 0x1f009900, 4, INITIAL_REWARD, consensus);
+        genesis = CreateGenesisBlock(1709865000, 61, 0x1f5f9900, 4, INITIAL_REWARD, consensus);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("main CreateGenesisBlock : hash %s\n", consensus.hashGenesisBlock.GetHex());
         LogPrintf("main CreateGenesisBlock : merkle %s\n", genesis.hashMerkleRoot.GetHex());
@@ -283,7 +283,7 @@ public:
         // consensus.hashGenesisBlock = genesis.GetHash();
         // assert(consensus.hashGenesisBlock == uint256S("0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
         // assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
-        genesis = CreateGenesisBlock(1705229000, 1096, 0x1f7fffff, 4, INITIAL_REWARD, consensus);
+        genesis = CreateGenesisBlock(1709865000, 61, 0x1f5f9900, 4, INITIAL_REWARD, consensus);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("testnet CreateGenesisBlock : hash %s\n", consensus.hashGenesisBlock.GetHex());
         LogPrintf("testnet CreateGenesisBlock : merkle %s\n", genesis.hashMerkleRoot.GetHex());
@@ -422,7 +422,7 @@ public:
         // consensus.hashGenesisBlock = genesis.GetHash();
         // assert(consensus.hashGenesisBlock == uint256S("0x00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6"));
         // assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
-        genesis = CreateGenesisBlock(1705229000, 1096, 0x1f7fffff, 4, INITIAL_REWARD, consensus);
+        genesis = CreateGenesisBlock(1709865000, 61, 0x1f5f9900, 4, INITIAL_REWARD, consensus);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("sig CreateGenesisBlock : hash %s\n", consensus.hashGenesisBlock.GetHex());
         LogPrintf("sig CreateGenesisBlock : merkle %s\n", genesis.hashMerkleRoot.GetHex());
@@ -533,7 +533,7 @@ public:
         // assert(consensus.hashGenesisBlock == uint256S("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
         // assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
-        genesis = CreateGenesisBlock(1705229000, 1096, 0x1f7fffff, 4, INITIAL_REWARD, consensus);
+        genesis = CreateGenesisBlock(1705229000, 1578, 0x1f7fffff, 4, INITIAL_REWARD, consensus);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("reg CreateGenesisBlock : hash %s\n", consensus.hashGenesisBlock.GetHex());
         LogPrintf("reg CreateGenesisBlock : merkle %s\n", genesis.hashMerkleRoot.GetHex());

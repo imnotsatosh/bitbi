@@ -1,38 +1,38 @@
-#ifndef SYNCQUEUE_H
-#define SYNCQUEUE_H
+#ifndef SYNCSTACK_H
+#define SYNCSTACK_H
 
-#include <queue>
+#include <stack>
 #include <mutex>
 #include <condition_variable>
 
 template <typename T>
-class SyncQueue {
+class SyncStack {
 private:
-    std::queue<T> queue;
+    std::stack<T> m_stack;
     std::mutex mutex;
     std::condition_variable cond;
 
 public:
     void push(T const& value) {
         std::unique_lock<std::mutex> lock(this->mutex);
-        queue.push(value);
+        m_stack.push(value);
         lock.unlock();
         this->cond.notify_one();
     }
 
     T pop() {
         std::unique_lock<std::mutex> lock(this->mutex);
-        while(queue.empty()) {
+        while(m_stack.empty()) {
             this->cond.wait(lock);
         }
-        T rc(std::move(this->queue.front()));
-        this->queue.pop();
+        T rc(std::move(this->m_stack.top()));
+        this->m_stack.pop();
         return rc;
     }
     int32_t size() {
         std::unique_lock<std::mutex> lock(this->mutex);
-        return this->queue.size();
+        return this->m_stack.size();
     }
 };
 
-#endif // SYNCQUEUE_H
+#endif // SYNCSTACK_H
