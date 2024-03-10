@@ -1,4 +1,4 @@
-packages:=
+packages:=randomx
 
 boost_packages = boost
 
@@ -37,3 +37,5 @@ darwin_native_packages+= native_clang
 endif
 
 endif
+
+randomx_packages=randomx

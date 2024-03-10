@@ -27,6 +27,8 @@ class CScript;
 class Chainstate;
 class ChainstateManager;
 
+constexpr char GenesisRewardReceiverAddr[] = "00149eea53cc0789e558ba68583d5ab1f07db9130e09";//"bc1qnm498nq838j43wngtq744v0s0ku3xrsf8w4x9d";
+
 namespace Consensus { struct Params; };
 
 namespace node {
